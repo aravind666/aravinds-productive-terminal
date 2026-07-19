@@ -68,6 +68,12 @@ if [ ! -d "$ZSH_CUSTOM_DIR/plugins/zsh-syntax-highlighting" ]; then
     git clone --depth 1 https://github.com/zsh-users/zsh-syntax-highlighting.git "$ZSH_CUSTOM_DIR/plugins/zsh-syntax-highlighting"
 fi
 
+if [ ! -d "$ZSH_CUSTOM_DIR/plugins/zsh-history-substring-search" ]; then
+    echo "Cloning zsh-history-substring-search..."
+    git clone --depth 1 https://github.com/zsh-users/zsh-history-substring-search "$ZSH_CUSTOM_DIR/plugins/zsh-history-substring-search"
+fi
+
+
 # 3. Create Local Bin Folder
 mkdir -p "$HOME/.local/bin"
 export PATH="$HOME/.local/bin:$PATH"
@@ -236,6 +242,11 @@ plugins=(
   git
   zsh-autosuggestions
   zsh-syntax-highlighting
+  zsh-history-substring-search
+  colored-man-pages
+  command-not-found
+  extract
+  sudo
 )
 
 if [ -f "$ZSH/oh-my-zsh.sh" ]; then
@@ -287,14 +298,64 @@ alias ga="git add"
 alias gco="git checkout"
 alias gl="git log --oneline --graph --decorate -n 10"
 
+# --- Zsh Completion Engine ---
+autoload -Uz compinit && compinit
+
+# Case-insensitive, partial-word, and substring completion
+zstyle ':completion:*' matcher-list '' 'm:{a-z}={A-Z}' 'm:{a-zA-Z}={A-Za-z}' 'r:|[._-]=* r:|=* l:|=*'
+
+# Fuzzy match mistyped commands
+zstyle ':completion:*' completer _complete _match _approximate
+zstyle ':completion:*:match:*' original only
+zstyle ':completion:*:approximate:*' max-errors 1 numeric
+
+# Group completions by category with headers
+zstyle ':completion:*' group-name ''
+zstyle ':completion:*:descriptions' format '%F{yellow}── %d ──%f'
+zstyle ':completion:*:messages' format '%F{purple} -- %d --%f'
+zstyle ':completion:*:warnings' format '%F{red}No matches for: %d%f'
+
+# Interactive arrow-key completion menu
+zstyle ':completion:*' menu select
+zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"
+
+# Cache completions for speed
+zstyle ':completion::complete:*' use-cache on
+zstyle ':completion::complete:*' cache-path "$HOME/.zcompcache"
+
+# Kill command completion shows process list
+zstyle ':completion:*:*:kill:*:processes' list-colors '=(#b) #([0-9]#) ([0-9a-z-]#)*=01;34=0=01'
+zstyle ':completion:*:*:*:*:processes' command "ps -u $USER -o pid,user,comm -w -w"
+
+# --- Keybindings ---
+bindkey '^[[A' history-substring-search-up     # Arrow Up: smart history search
+bindkey '^[[B' history-substring-search-down   # Arrow Down: smart history search
+bindkey '^[OA' history-substring-search-up
+bindkey '^[OB' history-substring-search-down
+bindkey '^[[1;5C' forward-word                 # Ctrl+Right: jump word forward
+bindkey '^[[1;5D' backward-word                # Ctrl+Left: jump word back
+bindkey '^H' backward-kill-word                # Ctrl+Backspace: delete word
+bindkey '^ ' autosuggest-accept                # Ctrl+Space: accept autosuggestion
+
 # --- Zsh Options & Settings ---
 setopt CORRECT
 setopt SHARE_HISTORY
 setopt APPEND_HISTORY
+setopt HIST_IGNORE_DUPS
+setopt HIST_IGNORE_ALL_DUPS
+setopt HIST_FIND_NO_DUPS
+setopt HIST_IGNORE_SPACE
+setopt AUTO_PUSHD
+setopt PUSHD_IGNORE_DUPS
+setopt PUSHD_SILENT
 
+export HISTSIZE=50000
+export SAVEHIST=50000
+export HISTFILE="$HOME/.zsh_history"
 export LS_COLORS="di=1;36:ln=35:so=32:pi=33:ex=31:bd=34;46:cd=34;43:su=30;41:sg=30;46:tw=30;42:ow=30;43"
 export ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="fg=242"
 EOF
+
 
 # 7. Bash to Zsh Switch Autostart
 echo "--- Step 6: Setting up Zsh Autostart in .bashrc ---"

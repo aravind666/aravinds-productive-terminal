@@ -9,6 +9,11 @@ plugins=(
   git
   zsh-autosuggestions
   zsh-syntax-highlighting
+  zsh-history-substring-search
+  colored-man-pages
+  command-not-found
+  extract
+  sudo
 )
 
 # Source Oh My Zsh
@@ -69,6 +74,49 @@ alias ga="git add"
 alias gco="git checkout"
 alias gl="git log --oneline --graph --decorate -n 10"
 
+# --- Zsh Completion Engine ---
+# Initialize the completion system (the core of smart tab completion)
+autoload -Uz compinit && compinit
+
+# Case-insensitive, partial-word, and substring completion
+zstyle ':completion:*' matcher-list '' 'm:{a-z}={A-Z}' 'm:{a-zA-Z}={A-Za-z}' 'r:|[._-]=* r:|=* l:|=*'
+
+# Fuzzy match mistyped commands
+zstyle ':completion:*' completer _complete _match _approximate
+zstyle ':completion:*:match:*' original only
+zstyle ':completion:*:approximate:*' max-errors 1 numeric
+
+# Group completions by category with headers
+zstyle ':completion:*' group-name ''
+zstyle ':completion:*:descriptions' format '%F{yellow}── %d ──%f'
+zstyle ':completion:*:messages' format '%F{purple} -- %d --%f'
+zstyle ':completion:*:warnings' format '%F{red}No matches for: %d%f'
+
+# Beautiful interactive completion menu (navigate with arrow keys)
+zstyle ':completion:*' menu select
+zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"
+
+# Show hidden files in completion
+zstyle ':completion:*' file-patterns '%p(^/):globbed-files *(-/):directories'
+
+# Cache completions for speed
+zstyle ':completion::complete:*' use-cache on
+zstyle ':completion::complete:*' cache-path "$HOME/.zcompcache"
+
+# Kill command completion shows process list
+zstyle ':completion:*:*:kill:*:processes' list-colors '=(#b) #([0-9]#) ([0-9a-z-]#)*=01;34=0=01'
+zstyle ':completion:*:*:*:*:processes' command "ps -u $USER -o pid,user,comm -w -w"
+
+# --- Keybindings ---
+bindkey '^[[A' history-substring-search-up     # Arrow Up: smart history search
+bindkey '^[[B' history-substring-search-down   # Arrow Down: smart history search
+bindkey '^[OA' history-substring-search-up     # For some terminals
+bindkey '^[OB' history-substring-search-down
+bindkey '^[[1;5C' forward-word                 # Ctrl+Right: jump word forward
+bindkey '^[[1;5D' backward-word                # Ctrl+Left: jump word back
+bindkey '^H' backward-kill-word                # Ctrl+Backspace: delete word
+bindkey '^ ' autosuggest-accept                # Ctrl+Space: accept autosuggestion
+
 # --- Zsh Options & Settings ---
 # Correct spelling of commands
 setopt CORRECT
@@ -78,6 +126,24 @@ setopt SHARE_HISTORY
 
 # Append history rather than overwriting
 setopt APPEND_HISTORY
+
+# Don't store duplicate commands in history
+setopt HIST_IGNORE_DUPS
+setopt HIST_IGNORE_ALL_DUPS
+setopt HIST_FIND_NO_DUPS
+
+# Remove commands starting with space from history
+setopt HIST_IGNORE_SPACE
+
+# Increase history file size dramatically
+export HISTSIZE=50000
+export SAVEHIST=50000
+export HISTFILE="$HOME/.zsh_history"
+
+# Auto push directory onto stack (cd -<TAB> shows recent dirs)
+setopt AUTO_PUSHD
+setopt PUSHD_IGNORE_DUPS
+setopt PUSHD_SILENT
 
 # Custom color overrides for LS_COLORS (clean Catppuccin-like colors)
 export LS_COLORS="di=1;36:ln=35:so=32:pi=33:ex=31:bd=34;46:cd=34;43:su=30;41:sg=30;46:tw=30;42:ow=30;43"
