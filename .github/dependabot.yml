@@ -1,0 +1,15 @@
+version: 2
+updates:
+  # Keep GitHub Actions used in our workflows (release-please, checkout, etc.)
+  # up to date as new versions are released.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "github-actions"

@@ -82,3 +82,12 @@ docs: clarify apt/dnf installation steps in README
 * Keep `install.sh` POSIX-friendly bash with `set -euo pipefail`, idempotent checks (`if [ ! -d ... ]`) before installing tools.
 * Keep configuration (`zshrc_template`, `starship.toml`) commented where non-obvious.
 * Avoid adding new hard dependencies unless necessary; prefer tools with static binary releases.
+
+## Dependency Updates (Dependabot)
+
+[Dependabot](.github/dependabot.yml) is configured to open PRs for the **GitHub Actions** used in our workflows (e.g. `actions/checkout`, `googleapis/release-please-action`) whenever new versions are released.
+
+Most of the tools this project installs (Starship, zoxide, fzf, eza, bat, asdf-managed language runtimes, AWS CLI, GitHub CLI) are **not** version-pinned — `install.sh` always fetches the latest release/official build at install time, so there's nothing for Dependabot to bump there by design.
+
+One exception: `NFPM_VERSION` in [`.github/workflows/package-release.yml`](.github/workflows/package-release.yml) is a pinned version string (not a `uses:` action reference), so Dependabot can't track it automatically. If you bump it, please verify `nfpm pkg --config nfpm.yaml --packager deb|rpm` still succeeds locally first.
+
