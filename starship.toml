@@ -1,0 +1,99 @@
+"$schema" = 'https://starship.rs/config-schema.json'
+
+# Keep it compact
+add_newline = false
+
+# Left Prompt (Powerline Rainbow Style)
+format = """
+[](#303030)\
+$os\
+$username\
+[](bg:#1d80ce fg:#303030)\
+$directory\
+[](bg:#4e9a06 fg:#1d80ce)\
+$git_branch\
+$git_status\
+[](fg:#4e9a06)\
+$line_break\
+$character"""
+
+# Right Prompt (Powerline segments on the right side of the screen)
+right_format = """
+[](#c4a000)\
+$cmd_duration\
+[](fg:#ce5c00 bg:#c4a000)\
+$memory_usage\
+[](fg:#d3d7cf bg:#ce5c00)\
+$time\
+[ ](fg:#d3d7cf)"""
+
+# --- Left Prompt Configuration ---
+
+[os]
+disabled = false
+style = "bg:#303030 fg:#ffffff"
+format = "[$symbol]($style)"
+
+[os.symbols]
+Linux = "🐧 "
+Redhat = "🐧 "
+RedHatEnterprise = "🐧 "
+CentOS = "🐧 "
+Debian = "🐧 "
+Ubuntu = "🐧 "
+OracleLinux = "🐙 "
+
+[username]
+show_always = true
+style_user = "bg:#303030 fg:#ffffff"
+style_root = "bg:#303030 fg:#ffffff"
+format = "[$user]($style)"
+
+[directory]
+style = "bg:#1d80ce fg:#ffffff bold"
+format = "[ $path ]($style)"
+truncation_length = 3
+truncation_symbol = "…/"
+
+[git_branch]
+symbol = ""
+style = "bg:#4e9a06 fg:#000000"
+format = '[[ $symbol $branch ](fg:#000000 bg:#4e9a06)]($style)'
+
+[git_status]
+style = "bg:#4e9a06 fg:#000000"
+format = '[[($all_status$ahead_behind )](fg:#000000 bg:#4e9a06)]($style)'
+
+# --- Right Prompt Configuration ---
+
+[cmd_duration]
+show_milliseconds = true
+style = "bg:#c4a000 fg:#000000"
+format = "[[  $duration ](fg:#000000 bg:#c4a000)]($style)"
+
+[memory_usage]
+disabled = false
+threshold = -1
+style = "bg:#ce5c00 fg:#ffffff"
+symbol = "󰍛 "
+format = "[[ $symbol$ram ](fg:#ffffff bg:#ce5c00)]($style)"
+
+[time]
+disabled = false
+time_format = "%R"
+style = "bg:#d3d7cf fg:#000000"
+format = "[[  $time ](fg:#000000 bg:#d3d7cf)]($style)"
+
+# --- Prompt Character & Line Break ---
+
+[line_break]
+disabled = false
+
+[character]
+disabled = false
+success_symbol = '[❯](bold fg:#4e9a06) '
+error_symbol = '[❯](bold fg:#cc0000) '
+vimcmd_symbol = '[❮](bold fg:#4e9a06) '
+vimcmd_replace_one_symbol = '[❮](bold fg:#ce5c00) '
+vimcmd_replace_symbol = '[❮](bold fg:#ce5c00) '
+vimcmd_visual_symbol = '[❮](bold fg:#c4a000) '

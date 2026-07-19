@@ -1,0 +1,86 @@
+# --- Oh My Zsh Configuration ---
+export ZSH="$HOME/.oh-my-zsh"
+
+# Starship handles the prompt theme, so we leave this empty
+ZSH_THEME=""
+
+# Enable OMZ plugins
+plugins=(
+  git
+  zsh-autosuggestions
+  zsh-syntax-highlighting
+)
+
+# Source Oh My Zsh
+if [ -f "$ZSH/oh-my-zsh.sh" ]; then
+  source "$ZSH/oh-my-zsh.sh"
+fi
+
+# --- System Paths ---
+export PATH="$HOME/.local/bin:$HOME/bin:$PATH"
+
+# --- Version Management (asdf) ---
+if [ -f "$HOME/.asdf/asdf.sh" ]; then
+  . "$HOME/.asdf/asdf.sh"
+fi
+
+# --- Tool Initializations ---
+
+# Starship Prompt
+if command -v starship &>/dev/null; then
+  eval "$(starship init zsh)"
+fi
+
+# Zoxide (Smarter cd)
+if command -v zoxide &>/dev/null; then
+  eval "$(zoxide init zsh)"
+fi
+
+# Fuzzy Finder (fzf)
+if [ -f "$HOME/.fzf.zsh" ]; then
+  source "$HOME/.fzf.zsh"
+fi
+
+# --- Custom Aliases ---
+
+# Modern CLI alternatives
+if command -v eza &>/dev/null; then
+  alias ls="eza --icons --group-directories-first"
+  alias ll="eza -la --icons --git --group-directories-first"
+  alias tree="eza --tree --icons"
+fi
+
+if command -v bat &>/dev/null; then
+  alias cat="bat"
+fi
+
+# Quick navigation
+alias ..="cd .."
+alias ...="cd ../.."
+alias ....="cd ../../.."
+
+# Git helpers
+alias g="git"
+alias gs="git status"
+alias gd="git diff"
+alias gp="git pull"
+alias gc="git commit -m"
+alias ga="git add"
+alias gco="git checkout"
+alias gl="git log --oneline --graph --decorate -n 10"
+
+# --- Zsh Options & Settings ---
+# Correct spelling of commands
+setopt CORRECT
+
+# Share history across terminals
+setopt SHARE_HISTORY
+
+# Append history rather than overwriting
+setopt APPEND_HISTORY
+
+# Custom color overrides for LS_COLORS (clean Catppuccin-like colors)
+export LS_COLORS="di=1;36:ln=35:so=32:pi=33:ex=31:bd=34;46:cd=34;43:su=30;41:sg=30;46:tw=30;42:ow=30;43"
+
+# Customize zsh-autosuggestions color style (using a lighter, clean muted color)
+export ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="fg=242"
