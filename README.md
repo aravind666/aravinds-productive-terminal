@@ -13,9 +13,14 @@ A complete, distro-agnostic, and single-command shell environment installer that
    * **`fzf` (`Ctrl+R`)** – Interactive fuzzy search.
    * **`eza` (`ls`)** – Beautiful colored listings with file icons and Git integration.
    * **`bat` (`cat`)** – Syntax-highlighted viewer.
-4. **asdf Version Manager:** Ready-to-go environment for Python, Node.js, Rust, Ruby, Go, and Java.
-5. **Interactive Autostart:** Auto-launches Zsh for WSL interactive sessions.
-6. **Optional Git Code Signing:** Automated setup of SSH-based commit signing.
+4. **Official Cloud & VCS Tooling:** [AWS CLI v2](https://docs.aws.amazon.com/cli/) and [GitHub CLI (`gh`)](https://cli.github.com/) installed from their official sources (not asdf), always kept current via each vendor's own update path.
+5. **asdf Version Manager:** Automatically installs and sets **global** versions for:
+   * **Node.js** – latest LTS
+   * **Java** – latest Amazon Corretto LTS
+   * **Python, Ruby, Go, Rust** – latest stable
+   * **`yq`, `jq`** – latest
+6. **Interactive Autostart:** Auto-launches Zsh for WSL interactive sessions.
+7. **Optional Git Code Signing:** Automated setup of SSH-based commit signing.
 
 ---
 

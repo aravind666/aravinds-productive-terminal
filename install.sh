@@ -47,8 +47,77 @@ else
     echo "Base system dependencies (zsh, git, curl) already installed."
 fi
 
-# 2. Oh My Zsh & Core Plugins
-echo "--- Step 2: Setting up Oh My Zsh & Plugins ---"
+# Build dependencies required by asdf when compiling languages (Python, Ruby,
+# etc.) from source. Without these, `asdf install python/ruby ...` fails.
+echo "Installing build dependencies for asdf language compilation..."
+if command -v apt-get &>/dev/null; then
+    sudo apt-get install -y build-essential zlib1g-dev libbz2-dev libreadline-dev \
+        libsqlite3-dev libssl-dev libffi-dev liblzma-dev
+elif command -v dnf &>/dev/null; then
+    sudo dnf install -y gcc make zlib-devel bzip2-devel bzip2-libs readline-devel \
+        sqlite sqlite-devel openssl-devel libffi-devel xz-devel
+elif command -v yum &>/dev/null; then
+    sudo yum install -y gcc make zlib-devel bzip2-devel bzip2-libs readline-devel \
+        sqlite sqlite-devel openssl-devel libffi-devel xz-devel
+fi
+
+# 2. AWS CLI v2 (Official Installer)
+echo "--- Step 2: Installing AWS CLI v2 (Official) ---"
+if ! command -v aws &>/dev/null; then
+    ARCH=$(uname -m)
+    case "$ARCH" in
+        x86_64) AWS_ARCH="x86_64" ;;
+        aarch64|arm64) AWS_ARCH="aarch64" ;;
+        *) AWS_ARCH="" ;;
+    esac
+
+    if [ -n "$AWS_ARCH" ]; then
+        echo "Downloading AWS CLI v2 installer for $AWS_ARCH..."
+        curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-${AWS_ARCH}.zip" -o /tmp/awscliv2.zip
+        unzip -q -o /tmp/awscliv2.zip -d /tmp
+        sudo /tmp/aws/install --update
+        rm -rf /tmp/awscliv2.zip /tmp/aws
+        echo "AWS CLI installed: $(aws --version)"
+    else
+        echo "❌ Unsupported architecture ($ARCH) for AWS CLI v2. Skipping."
+    fi
+else
+    echo "AWS CLI already installed: $(aws --version)"
+fi
+
+# 3. GitHub CLI (Official Repository)
+echo "--- Step 3: Installing GitHub CLI (Official) ---"
+if ! command -v gh &>/dev/null; then
+    if command -v apt-get &>/dev/null; then
+        echo "Adding GitHub CLI apt repository..."
+        sudo mkdir -p -m 755 /etc/apt/keyrings
+        curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg -o /tmp/githubcli-archive-keyring.gpg
+        sudo mv /tmp/githubcli-archive-keyring.gpg /etc/apt/keyrings/githubcli-archive-keyring.gpg
+        sudo chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg
+        sudo mkdir -p -m 755 /etc/apt/sources.list.d
+        echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
+            | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+        sudo apt-get update
+        sudo apt-get install -y gh
+    elif command -v dnf &>/dev/null; then
+        echo "Adding GitHub CLI dnf repository..."
+        sudo dnf install -y dnf-plugins-core
+        sudo dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo
+        sudo dnf install -y gh --repo gh-cli
+    elif command -v yum &>/dev/null; then
+        echo "Adding GitHub CLI yum repository..."
+        sudo yum-config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo
+        sudo yum install -y gh
+    else
+        echo "❌ Unsupported package manager for GitHub CLI installation. Skipping."
+    fi
+    command -v gh &>/dev/null && echo "GitHub CLI installed: $(gh --version | head -n 1)"
+else
+    echo "GitHub CLI already installed: $(gh --version | head -n 1)"
+fi
+
+# 4. Oh My Zsh & Core Plugins
+echo "--- Step 4: Setting up Oh My Zsh & Plugins ---"
 if [ ! -d "$HOME/.oh-my-zsh" ]; then
     echo "Downloading and installing Oh My Zsh..."
     sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended --keep-zshrc
@@ -74,12 +143,12 @@ if [ ! -d "$ZSH_CUSTOM_DIR/plugins/zsh-history-substring-search" ]; then
 fi
 
 
-# 3. Create Local Bin Folder
+# 5. Create Local Bin Folder
 mkdir -p "$HOME/.local/bin"
 export PATH="$HOME/.local/bin:$PATH"
 
-# 4. Install Productivity Tools (Starship, Zoxide, Fzf, Eza, Bat)
-echo "--- Step 3: Installing Modern CLI Tools (Rust & Go Powered) ---"
+# 6. Install Productivity Tools (Starship, Zoxide, Fzf, Eza, Bat)
+echo "--- Step 5: Installing Modern CLI Tools (Rust & Go Powered) ---"
 
 # Starship Prompt
 echo "Installing Starship Prompt..."
@@ -118,24 +187,87 @@ if [ ! -f "$HOME/.local/bin/bat" ]; then
     rm -rf /tmp/bat-* /tmp/bat.tar.gz
 fi
 
-# 5. Version Manager (asdf)
-echo "--- Step 4: Installing asdf Version Manager ---"
+# 7. Version Manager (asdf)
+echo "--- Step 6: Installing asdf Version Manager ---"
 if [ ! -d "$HOME/.asdf" ]; then
     echo "Cloning asdf..."
     git clone https://github.com/asdf-vm/asdf.git "$HOME/.asdf" --branch v0.15.0
 fi
 
-# Add language plugins
+# Add language & tool plugins
 . "$HOME/.asdf/asdf.sh"
-for plugin in python nodejs rust ruby golang java; do
-    if ! asdf plugin list | grep -q "$plugin"; then
+for plugin in python nodejs rust ruby golang java yq jq; do
+    if ! asdf plugin list | grep -q "^${plugin}$"; then
         echo "Adding asdf plugin: $plugin"
         asdf plugin add "$plugin" || true
     fi
 done
 
-# 6. Writing Configurations (Starship & Zshrc)
-echo "--- Step 5: Writing Shell Configuration Files ---"
+# Install and set global versions for each asdf-managed tool.
+# Node.js and Java use their latest LTS release; the rest use latest stable.
+echo "Installing and configuring global asdf tool versions..."
+
+echo "Resolving latest Node.js LTS..."
+NODEJS_PLUGIN_DIR="$HOME/.asdf/plugins/nodejs"
+asdf nodejs update-nodebuild &>/dev/null || true
+# The asdf CLI's "cmd" passthrough for plugin subcommands is unreliable across
+# asdf versions, so fall back to invoking the plugin's resolve script
+# directly, and finally to plain `asdf latest` if all else fails.
+NODEJS_VERSION=$(asdf nodejs resolve lts --latest-available 2>/dev/null || true)
+if [ -z "$NODEJS_VERSION" ] && [ -x "$NODEJS_PLUGIN_DIR/lib/commands/command-resolve" ]; then
+    NODEJS_VERSION=$(bash "$NODEJS_PLUGIN_DIR/lib/commands/command-resolve" lts --latest-available 2>/dev/null || true)
+fi
+if [ -z "$NODEJS_VERSION" ]; then
+    NODEJS_VERSION=$(asdf latest nodejs)
+fi
+asdf install nodejs "$NODEJS_VERSION"
+asdf global nodejs "$NODEJS_VERSION"
+
+echo "Resolving latest Python..."
+PYTHON_VERSION=$(asdf latest python)
+asdf install python "$PYTHON_VERSION"
+asdf global python "$PYTHON_VERSION"
+
+echo "Resolving latest Ruby..."
+RUBY_VERSION=$(asdf latest ruby)
+asdf install ruby "$RUBY_VERSION"
+asdf global ruby "$RUBY_VERSION"
+
+echo "Resolving latest Go..."
+GOLANG_VERSION=$(asdf latest golang)
+asdf install golang "$GOLANG_VERSION"
+asdf global golang "$GOLANG_VERSION"
+
+echo "Resolving latest Rust..."
+RUST_VERSION=$(asdf latest rust)
+asdf install rust "$RUST_VERSION"
+asdf global rust "$RUST_VERSION"
+
+echo "Resolving latest Amazon Corretto LTS (Java)..."
+JAVA_VERSION=$(asdf list-all java 2>/dev/null | grep -E '^corretto-(8|11|17|21|25)\.' | tail -n 1)
+if [ -z "$JAVA_VERSION" ]; then
+    # Fallback: latest non-musl Corretto build available, in case the LTS
+    # major list above becomes outdated.
+    JAVA_VERSION=$(asdf list-all java 2>/dev/null | grep -E '^corretto-[0-9]' | grep -v musl | tail -n 1)
+fi
+asdf install java "$JAVA_VERSION"
+asdf global java "$JAVA_VERSION"
+
+echo "Resolving latest yq..."
+YQ_VERSION=$(asdf latest yq)
+asdf install yq "$YQ_VERSION"
+asdf global yq "$YQ_VERSION"
+
+echo "Resolving latest jq..."
+JQ_VERSION=$(asdf latest jq)
+asdf install jq "$JQ_VERSION"
+asdf global jq "$JQ_VERSION"
+
+echo "asdf global versions configured:"
+asdf current
+
+# 8. Writing Configurations (Starship & Zshrc)
+echo "--- Step 7: Writing Shell Configuration Files ---"
 
 # Write starship.toml
 mkdir -p "$HOME/.config"
@@ -357,8 +489,8 @@ export ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="fg=242"
 EOF
 
 
-# 7. Bash to Zsh Switch Autostart
-echo "--- Step 6: Setting up Zsh Autostart in .bashrc ---"
+# 9. Bash to Zsh Switch Autostart
+echo "--- Step 8: Setting up Zsh Autostart in .bashrc ---"
 AUTOSTART_BLOCK='
 # Automatically switch to zsh for interactive shells
 if [ -t 1 ] && [ -x /usr/bin/zsh ]; then
