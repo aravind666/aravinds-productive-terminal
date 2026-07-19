@@ -1,0 +1,36 @@
+name: "aravinds-productive-terminal"
+arch: "all"
+platform: "linux"
+version: "${VERSION}"
+section: "utils"
+priority: "optional"
+maintainer: "Aravind <aravind666@users.noreply.github.com>"
+description: |
+  Distro-agnostic Zsh + Starship + modern CLI tool environment installer.
+  Automatically configures Zsh, Oh My Zsh, Starship prompt, zoxide, fzf,
+  eza, bat and the asdf version manager for the invoking user on install.
+homepage: "https://github.com/aravind666/aravinds-productive-terminal"
+license: "MIT"
+
+depends:
+  - bash
+  - curl
+  - git
+  - tar
+  - unzip
+  - zsh
+
+contents:
+  - src: ./install.sh
+    dst: /usr/share/aravinds-productive-terminal/install.sh
+    file_info:
+      mode: 0755
+  - src: ./zshrc_template
+    dst: /usr/share/aravinds-productive-terminal/zshrc_template
+  - src: ./starship.toml
+    dst: /usr/share/aravinds-productive-terminal/starship.toml
+  - src: ./README.md
+    dst: /usr/share/doc/aravinds-productive-terminal/README.md
+
+scripts:
+  postinstall: ./scripts/postinstall.sh

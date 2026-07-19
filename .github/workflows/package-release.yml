@@ -1,0 +1,37 @@
+name: package-release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-upload:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install nfpm
+        env:
+          NFPM_VERSION: "2.47.0"
+        run: |
+          curl -sfL "https://github.com/goreleaser/nfpm/releases/download/v${NFPM_VERSION}/nfpm_${NFPM_VERSION}_Linux_x86_64.tar.gz" -o /tmp/nfpm.tar.gz
+          tar -xzf /tmp/nfpm.tar.gz -C /tmp nfpm
+          sudo install -m 0755 /tmp/nfpm /usr/local/bin/nfpm
+          nfpm --version
+
+      - name: Determine version
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+
+      - name: Build .deb and .rpm packages
+        run: |
+          mkdir -p dist
+          nfpm pkg --config nfpm.yaml --packager deb --target dist/
+          nfpm pkg --config nfpm.yaml --packager rpm --target dist/
+
+      - name: Upload packages to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ github.event.release.tag_name }}" dist/*.deb dist/*.rpm --clobber
