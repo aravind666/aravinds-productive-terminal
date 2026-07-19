@@ -9,12 +9,28 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  actions: write
 
 jobs:
   release-please:
     runs-on: ubuntu-latest
     steps:
-      - uses: googleapis/release-please-action@v4
+      - id: release
+        uses: googleapis/release-please-action@v4
         with:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
+
+      # release-please uses the default GITHUB_TOKEN, and GitHub deliberately
+      # does not let events created by GITHUB_TOKEN (like the release it just
+      # published) trigger other workflows. To avoid needing a separate PAT,
+      # we explicitly dispatch the packaging workflow ourselves whenever a
+      # release was actually created.
+      - name: Trigger package build
+        if: ${{ steps.release.outputs.release_created }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run package-release.yml \
+            --repo "${{ github.repository }}" \
+            -f tag="${{ steps.release.outputs.tag_name }}"

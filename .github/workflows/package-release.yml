@@ -1,8 +1,11 @@
 name: package-release
 
 on:
-  release:
-    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to build and upload packages for (e.g. v1.0.0 or aravinds-productive-terminal-v1.0.0)'
+        required: true
 
 permissions:
   contents: write
@@ -12,6 +15,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
 
       - name: Install nfpm
         env:
@@ -23,7 +28,11 @@ jobs:
           nfpm --version
 
       - name: Determine version
-        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+        run: |
+          # Strip any leading component-name prefix, keeping just the semver, e.g.
+          # "aravinds-productive-terminal-v1.0.0" -> "1.0.0"
+          VERSION=$(echo "${{ inputs.tag }}" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+.*$')
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
 
       - name: Build .deb and .rpm packages
         run: |
@@ -34,4 +43,4 @@ jobs:
       - name: Upload packages to release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload "${{ github.event.release.tag_name }}" dist/*.deb dist/*.rpm --clobber
+        run: gh release upload "${{ inputs.tag }}" dist/*.deb dist/*.rpm --clobber
